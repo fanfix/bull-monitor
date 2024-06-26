@@ -10,13 +10,22 @@ const program = createCommand();
 
 program
   .addOption(
-    new Option('--redis-uri <uri>', 'redis uri').default(
-      'redis://localhost:6379'
-    )
+    new Option('--redis-uri <uri>', 'redis uri')
+      .makeOptionMandatory(true)
+      .env('REDIS_URI')
   )
-  .requiredOption('-q, --queue <queues...>', 'queue names')
+  .addOption(
+    new Option('-q, --queue <queues...>', 'queue names')
+      .makeOptionMandatory(true)
+      .env('QUEUE_NAMES')
+  )
   .option('--bullmq', 'use bullmq instead of bull')
-  .option('-p, --port <number>', "server's port", '3000')
+  .addOption(
+    new Option('-p, --port <number>', "server's port")
+      .default('3000')
+      .makeOptionMandatory(true)
+      .env('PORT')
+  )
   .option('--host <string>', "server's host", 'localhost')
   .option('--prefix <string>', 'redis key prefix', undefined)
   .option('-m, --metrics', 'enable metrics collector')
@@ -45,16 +54,18 @@ const options = program.opts();
           require('@bull-monitor/root/dist/bullmq-adapter').BullMQAdapter;
         return new Adapter(
           new BullMqQueue(name, {
-            ...(options.prefix ? {prefix: options.prefix}: {}),
+            ...(options.prefix ? { prefix: options.prefix } : {}),
             connection,
           })
         );
       } else {
         const Adapter =
           require('@bull-monitor/root/dist/bull-adapter').BullAdapter;
-        return new Adapter(new BullQueue(name, options.redisUri, {
-          ...(options.prefix ? {prefix: options.prefix}: {})
-        }));
+        return new Adapter(
+          new BullQueue(name, options.redisUri, {
+            ...(options.prefix ? { prefix: options.prefix } : {}),
+          })
+        );
       }
     }),
     metrics: options.metrics && {
